@@ -5,45 +5,35 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { userId, message, sender, timestamp, location } = body;
+    console.log("📩 Incoming SMS Payload:", body);
 
-    if (!userId || !message) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-    }
-
-    console.log(body);
-
-    // Insert notification into Supabase
-    const { error: notifError } = await supabase.from('notifications').insert([
-      {
-        user_id: userId,
-        sender: sender || 'Unknown',
-        message,
-        timestamp: timestamp || new Date().toISOString(),
-        location: location || null,
-      },
-    ]);
-
-    if (notifError) throw notifError;
-
-    // Call OpenRouter API
-    const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
+    // 🔹 Call OpenRouter API
+    const openRouterResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
       headers: {
         Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL!,
-        'X-Title': process.env.NEXT_PUBLIC_SITE_NAME!,
-        'Content-Type': 'application/json',
+        "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
+        "X-Title": process.env.NEXT_PUBLIC_SITE_NAME || "MyApp",
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: 'deepseek/deepseek-r1-distill-llama-70b:free',
+        model: "deepseek/deepseek-r1-distill-llama-70b:free",
         messages: [
           {
-            role: 'system',
-            content:
-              "You are a financial SMS parser. Analyze the following SMS and determine if it's a transaction. If it is, return a JSON with 'receiver' and 'amount'. If not, return an empty object.",
+            role: "system",
+            content: `You are a financial SMS parser. 
+              Return ONLY valid JSON. No explanations, no markdown. 
+              If it's a transaction, return:
+              {
+                "receiver": "...",
+                "amount": "...",
+                "category": "food | travel | personal | shopping | bills | other",
+                "bank": "..."
+              }
+              If not, return {}.`,
           },
           {
-            role: 'user',
+            role: "user",
             content: `Analyze this SMS for transaction details: ${message}`,
           },
         ],
@@ -51,37 +41,59 @@ export async function POST(req: Request) {
     });
 
     const responseData = await openRouterResponse.json();
-    const responseContent = responseData.choices?.[0]?.message?.content;
-    console.log('OpenRouter Response:', responseContent);
+    const responseContent = responseData?.choices?.[0]?.message?.content || "";
+    console.log("🤖 OpenRouter Response:", responseContent);
 
-    if (responseContent) {
+    // 🧹 Extract JSON safely
+    let transactionDetails: any = {};
+    const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
+
+    if (jsonMatch) {
       try {
-        const jsonMatch = responseContent.match(/\{.*\}/s);
-        if (jsonMatch) {
-          const transactionDetails = JSON.parse(jsonMatch[0]);
-
-          if (transactionDetails.amount) {
-            await supabase.from('transactions').insert([
-              {
-                user_id: userId,
-                type: 'SMS',
-                amount: transactionDetails.amount,
-                recipient: transactionDetails.receiver || 'Unknown',
-                raw_message: message,
-                timestamp: timestamp || new Date().toISOString(),
-                location,
-              },
-            ]);
-          }
-        }
+        transactionDetails = JSON.parse(jsonMatch[0]);
       } catch (parseError) {
-        console.error('Error parsing transaction details:', parseError);
+        console.error("❌ JSON Parse Error:", parseError);
       }
     }
 
-    return NextResponse.json({ message: 'SMS processed and saved successfully' }, { status: 200 });
+    // ✅ Save only if valid transaction detected
+    if (transactionDetails?.amount) {
+      const { error: dbError } = await supabase.from("transactions").insert([
+        {
+          type: "SMS",
+          amount: transactionDetails.amount,
+          recipient: transactionDetails.receiver || "Unknown",
+          category: transactionDetails.category || "other",
+          bank: transactionDetails.bank || "Unknown",
+          raw_message: message,
+          sender: sender || "Unknown",
+          timestamp: timestamp || new Date().toISOString(),
+          location: location || null,
+        },
+      ]);
+
+      if (dbError) {
+        console.error("❌ Supabase Insert Error:", dbError);
+        return NextResponse.json(
+          { error: "Failed to save transaction", detail: dbError.message },
+          { status: 500 }
+        );
+      }
+
+      console.log("✅ Transaction saved:", transactionDetails);
+    } else {
+      console.log("ℹ️ No valid transaction found, skipping DB insert.");
+    }
+
+    return NextResponse.json(
+      { message: "SMS processed successfully", transaction: transactionDetails },
+      { status: 200 }
+    );
   } catch (error: any) {
-    console.error('Error processing SMS:', error);
-    return NextResponse.json({ error: 'Internal server error', detail: error.message }, { status: 500 });
+    console.error("❌ Error processing SMS:", error);
+    return NextResponse.json(
+      { error: "Internal server error", detail: error.message },
+      { status: 500 }
+    );
   }
 }
