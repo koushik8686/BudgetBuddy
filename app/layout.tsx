@@ -1,10 +1,12 @@
+
 import type React from "react"
 import "@/app/globals.css"
 import { Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { MainNav } from "@/components/main-nav"
+import './globals.css'
 import { MobileNav } from "@/components/mobile-nav"
-
+import SessionWrapper from "./SessionWrapper"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
@@ -19,6 +21,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
+   <SessionWrapper> 
     <html lang="en">
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
@@ -34,9 +37,7 @@ export default function RootLayout({
         </ThemeProvider>
       </body>
     </html>
+    </SessionWrapper>
   )
 }
 
-
-
-import './globals.css'

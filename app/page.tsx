@@ -15,6 +15,8 @@ import {
   Moon,
 } from "lucide-react"
 
+import { signIn } from "next-auth/react"
+
 export default function Dashboard() {
   const [darkMode, setDarkMode] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -44,77 +46,12 @@ export default function Dashboard() {
       localStorage.setItem("theme", "dark")
     }
   }
-
+ 
   if (!mounted) return null
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-      <div className="flex min-h-screen">
-        {/* Sidebar */}
-        <div className="hidden md:flex flex-col w-64 bg-white dark:bg-gray-800 shadow-[0_0_20px_rgba(0,0,0,0.05)] dark:shadow-[0_0_20px_rgba(0,0,0,0.3)] z-10 transition-all duration-300">
-          <div className="p-4 flex items-center justify-between border-b border-gray-100 dark:border-gray-700">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">
-                ET
-              </div>
-              <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400">ExpenseTracker</span>
-            </div>
-          </div>
-          <nav className="flex-1 p-4 space-y-1">
-            <Link
-              href="/"
-              className="flex items-center space-x-2 p-3 rounded-lg bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-indigo-900/20 transition-all duration-200 hover:shadow-lg hover:shadow-indigo-200 dark:hover:shadow-indigo-900/30"
-            >
-              <Home className="h-5 w-5" />
-              <span>Dashboard</span>
-            </Link>
-            <Link
-              href="/transactions"
-              className="flex items-center space-x-2 p-3 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
-            >
-              <CreditCard className="h-5 w-5" />
-              <span>Transactions</span>
-            </Link>
-            <Link
-              href="/sms"
-              className="flex items-center space-x-2 p-3 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
-            >
-              <Smartphone className="h-5 w-5" />
-              <span>SMS Transactions</span>
-            </Link>
-            <Link
-              href="/analytics"
-              className="flex items-center space-x-2 p-3 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
-            >
-              <PieChart className="h-5 w-5" />
-              <span>Analytics</span>
-            </Link>
-            <Link
-              href="/calendar"
-              className="flex items-center space-x-2 p-3 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
-            >
-              <CalendarIcon className="h-5 w-5" />
-              <span>Calendar</span>
-            </Link>
-            <Link
-              href="/settings"
-              className="flex items-center space-x-2 p-3 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
-            >
-              <Settings className="h-5 w-5" />
-              <span>Settings</span>
-            </Link>
-          </nav>
-          <div className="p-4 border-t border-gray-100 dark:border-gray-700">
-            <button
-              onClick={toggleTheme}
-              className="flex items-center space-x-2 p-3 w-full rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
-            >
-              {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-              <span>{darkMode ? "Light Mode" : "Dark Mode"}</span>
-            </button>
-          </div>
-        </div>
-
+    
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
           {/* Mobile Header */}
@@ -273,7 +210,6 @@ export default function Dashboard() {
           </main>
         </div>
       </div>
-    </div>
   )
 }
 
