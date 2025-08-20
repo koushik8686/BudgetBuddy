@@ -1,12 +1,8 @@
-let userConfig = undefined
-try {
-  userConfig = await import('./v0-user-next.config')
-} catch (e) {
-  // ignore error
-}
+import fs from "fs";
+import path from "path";
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {
+const baseConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -21,28 +17,29 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
+};
+
+function loadUserConfig() {
+  const userConfigPath = path.resolve("./v0-user-next.config.js");
+  if (fs.existsSync(userConfigPath)) {
+    // Dynamic require instead of await import
+    const mod = require(userConfigPath);
+    return mod.default || mod;
+  }
+  return {};
 }
 
-mergeConfig(nextConfig, userConfig)
-
-function mergeConfig(nextConfig, userConfig) {
-  if (!userConfig) {
-    return
-  }
-
-  for (const key in userConfig) {
-    if (
-      typeof nextConfig[key] === 'object' &&
-      !Array.isArray(nextConfig[key])
-    ) {
-      nextConfig[key] = {
-        ...nextConfig[key],
-        ...userConfig[key],
-      }
+function mergeConfig(base, user) {
+  for (const key in user) {
+    if (typeof base[key] === "object" && !Array.isArray(base[key])) {
+      base[key] = { ...base[key], ...user[key] };
     } else {
-      nextConfig[key] = userConfig[key]
+      base[key] = user[key];
     }
   }
 }
 
-export default nextConfig
+const userConfig = loadUserConfig();
+mergeConfig(baseConfig, userConfig);
+
+export default baseConfig;
