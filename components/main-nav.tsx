@@ -41,12 +41,17 @@ export function MainNav() {
     { href: "/settings", label: "Settings", icon: Settings, active: pathname === "/settings" },
   ];
 
-  const signInWithGoogle = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: "http://localhost:3000" },
-    });
-  };
+const signInWithGoogle = async () => {
+  // Get the base URL from environment variables
+  const redirectURL = process.env.NEXT_PUBLIC_SITE_URL;
+
+  await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: redirectURL,
+    },
+  });
+};
 
   const signOut = async () => {
     await supabase.auth.signOut();
